@@ -1,0 +1,171 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta charset="UTF-8"> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+<title>PointToLayer Leaflet</title> 
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/> 
+
+<style> 
+body { margin: 0; padding: 0; } 
+html, body, #map { height: 100%; } 
+
+
+.info {
+padding: 6px 8px;
+font: 14px/16px Arial, Helvetica, sans-serif;
+background: white;
+background: rgba(255,255,255,0.8);
+box-shadow: 0 0 15px rgba(0,0,0,0.2);
+border-radius: 5px;
+}
+
+.info h2 {
+margin: 0 0 5px;
+color: #777;
+}
+
+.legend{
+line-height: 18px;
+color: #555;
+}
+.legend i{
+width: 18px;
+height: 18px;
+float: left;
+margin-right: 8px;
+opacity: 0.7;
+}
+
+
+</style> 
+
+</head> 
+
+<body> 
+
+<div id="map"></div> 
+
+<!-- LIBRERÍAS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script> 
+
+<!-- mi GEOJSON EXTERNO -->
+<script src="countries.js"></script>
+
+<script> 
+
+//añadimos la capa de base
+var map = L.map('map', { 
+    center: [41.66, -4.72], 
+    zoom: 4
+}); 
+
+var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',}).addTo(map); 
+
+
+//estilos
+
+function getColor(d) {
+return d > 100000000? '#800026':
+d > 50000000 ? '#BD0026':
+d > 20000000 ? '#E31A1C':
+d > 10000000 ? '#FC4E2A':
+d > 5000000 ? '#FD8D3C':
+d > 2000000 ? '#FEB24C':
+d > 1000000 ? '#FED976':
+'#FFEDA0';
+}
+
+function style(feature) {
+return{
+fillColor: getColor(feature.properties.POP_EST),
+weight: 2,
+opacity: 1,
+color: 'white',
+dashArray: '3',
+fillOpacity: 0.7
+};
+}
+
+//CREAMOS LA FUNCIONALIDAD DE CONSULTA POPUP
+function popup(feature, layer) {
+if (feature.properties && feature.properties.NAME) {
+layer.bindPopup(feature.properties.NAME);
+}
+}
+
+//AÑADIMOS EL GEOJSON
+var countriesLayer = L.geoJSON(countries, {
+style: style,
+onEachFeature: popup
+}).addTo(map);
+
+
+// Insertando un título en el mapa
+var title = L.control();
+
+title.onAdd = function(map) {
+var div = L.DomUtil.create('div', 'info');
+div.innerHTML +=
+'<h2>PAISES DEL MUNDO</h2>Tamaño según población';
+return div;
+};
+title.addTo(map);
+
+
+//CONTROL DE CAPAS====
+var baseLayers = {
+"Base": osm
+};
+
+var overlayLayers = {
+"Paises": countriesLayer
+};
+
+// Creamos el control de capas (no collapsed para que siempre se vea)
+L.control.layers(baseLayers, overlayLayers, {
+collapsed: false,     // false = siempre abierto
+position: 'topright'
+}).addTo(map);
+
+
+// Leyenda
+var legend = L.control({position: 'bottomright'});
+
+legend.onAdd = function (map) {
+var div = L.DomUtil.create('div', 'info legend'),
+grades = [0, 1000000, 2000000, 5000000, 10000000, 20000000, 50000000, 100000000],
+labels = [];
+
+// Intervalos de poblacion
+for (var i = 0; i < grades.length; i++) {
+div.innerHTML +=
+'<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+}
+return div;
+};
+
+legend.addTo(map);
+
+//MOSTRAR / OCULTAR LEYENDA
+map.on('overlayadd', function(eventLayer) {
+if (eventLayer.name === 'Paises') {
+legend.addTo(map);
+}
+});
+
+map.on('overlayremove', function(eventLayer) {
+if (eventLayer.name === 'Paises') {
+map.removeControl(legend);
+}
+});
+
+
+
+</script> 
+
+</body> 
+</html>
